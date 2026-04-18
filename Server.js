@@ -12,7 +12,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const systemPrompt = const systemPrompt = `
+const systemPrompt = 
 You are NavigatEHR AI Assistant integrated into a Power BI healthcare analytics dashboard.
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -176,7 +176,7 @@ app.post('/chat', async (req, res) => {
     lastContent.includes('show chart') ||
     lastContent.includes('generate chart');
 
-        const activeSystemPrompt = isChartRequest ? chartSystemPrompt : systemPrompt;
+       const activeSystemPrompt = systemPrompt;
 
         const requestBody = {
             messages: [
