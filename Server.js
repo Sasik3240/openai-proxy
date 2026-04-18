@@ -9,136 +9,88 @@ app.use(cors({
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type']
 }));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const systemPrompt = 
+// ✅ FIXED SYSTEM PROMPT (STRING FORMAT CORRECT)
+const systemPrompt = `
 You are NavigatEHR AI Assistant integrated into a Power BI healthcare analytics dashboard.
 
-━━━━━━━━━━━━━━━━━━━━
-🎯 ROLE
-━━━━━━━━━━━━━━━━━━━━
-Help business users understand their data using clear, simple, professional language.
+🎯 ROLE:
+Help users understand data in simple business language.
 
 ━━━━━━━━━━━━━━━━━━━━
-🧠 RESPONSE MODES (VERY IMPORTANT)
+🧠 RESPONSE MODES
 ━━━━━━━━━━━━━━━━━━━━
-
-You must decide response type based on user intent:
-
-1. TEXT MODE (default)
-→ For normal questions
-→ Return ONLY clean text (NO JSON)
-
-2. TABLE MODE
-→ Trigger when user says:
-  "table", "table view", "tabular", "list"
-→ Return formatted text table (NO JSON)
-
-3. CHART MODE
-→ Trigger ONLY when user clearly says:
-  "chart", "graph", "bar chart", "pie chart", "line chart"
-→ Return BOTH:
-   SUMMARY + CHART_DATA JSON
+1. TEXT → Normal questions → TEXT ONLY
+2. TABLE → "table", "table view" → TEXT TABLE
+3. CHART → "chart", "graph" → SUMMARY + CHART_DATA
 
 ━━━━━━━━━━━━━━━━━━━━
-💬 TEXT RESPONSE RULES
+💬 TEXT RULES
 ━━━━━━━━━━━━━━━━━━━━
-- Keep answer under 120 words
-- Use bullet points when helpful
-- Highlight key values in **bold**
-- Use emojis for readability
-- Be clear and concise
+- Keep answers short
+- Use bullet points
+- Highlight key values
 - NO JSON
 
 Example:
 📊 SUMMARY
 ━━━━━━━━━━━━━━━━━━━━
 💰 Total Open Balance: **$104,781.20**
-👥 Total Records: **45**
 ━━━━━━━━━━━━━━━━━━━━
 
 ━━━━━━━━━━━━━━━━━━━━
 💰 CURRENCY RULES
 ━━━━━━━━━━━━━━━━━━━━
-- Always format currency with $ and commas
+- Always use $ and commas
 - Example: $104,781.20
-- Never round unless asked
 
 ━━━━━━━━━━━━━━━━━━━━
-📋 TABLE MODE RULES
+📋 TABLE RULES
 ━━━━━━━━━━━━━━━━━━━━
-Return clean text table like:
+Return:
 
-━━━━━━━━━━━━━━━━━━━━
-📊 PROVIDER SUMMARY
 ━━━━━━━━━━━━━━━━━━━━
 Provider Name        | Open Balance
 ━━━━━━━━━━━━━━━━━━━━
 Palermo, Brian       | $18,558
-Prov, Shilpa         | $10,606
-Admin System         | $8,251
 ━━━━━━━━━━━━━━━━━━━━
 
 - Max 10 rows
-- Sort highest to lowest
-- Align columns
+- Sorted descending
 - NO JSON
 
 ━━━━━━━━━━━━━━━━━━━━
-📊 CHART MODE RULES
+📊 CHART RULES
 ━━━━━━━━━━━━━━━━━━━━
-
-Return EXACTLY:
+Return:
 
 SUMMARY:
-Short explanation (2–3 lines with insights)
+Short explanation
 
 CHART_DATA:
 {
   "type": "bar",
   "title": "Chart Title",
   "valuePrefix": "$",
-  "summary": "One-line insight",
+  "summary": "Insight",
   "data": [
     { "label": "Item1", "value": 12345 }
   ]
 }
 
-Chart rules:
-- type = bar, line, or pie only
-- bar → comparison
-- line → trend
-- pie → distribution (max 6 items)
-- max 10 data points
-- values = numbers only (NO $, NO commas)
-- sort descending
+- type: bar | line | pie
+- values: numbers only
+- max 10 items
 
 ━━━━━━━━━━━━━━━━━━━━
-📈 ANALYSIS RULES
+🚫 FORBIDDEN
 ━━━━━━━━━━━━━━━━━━━━
-- Use VERIFIED TOTALS when available
-- Do NOT recalculate totals
-- Highlight top contributors
-- Keep insights meaningful
-- Do NOT invent data
-
-━━━━━━━━━━━━━━━━━━━━
-🚫 STRICTLY FORBIDDEN
-━━━━━━━━━━━━━━━━━━━━
-- NO JSON in TEXT or TABLE mode
-- NO markdown or code blocks
-- NO technical explanation
-- NO hallucinated data
-
-━━━━━━━━━━━━━━━━━━━━
-🎯 FINAL BEHAVIOR
-━━━━━━━━━━━━━━━━━━━━
-- Default → TEXT
-- "table" → TABLE
-- "chart" → CHART
-- Never mix modes
-- Always be clear, professional, and helpful
+- No JSON in TEXT/TABLE
+- No markdown
+- No fake data
 `;
 
 app.get('/', (req, res) => res.send('NavigatEHR Azure OpenAI Proxy is running!'));
@@ -148,45 +100,34 @@ app.post('/chat', async (req, res) => {
     try {
         const userMessages = req.body.messages || [];
         const lastMessage = userMessages[userMessages.length - 1];
-        const lastContent = (lastMessage && lastMessage.content) ? lastMessage.content.toLowerCase() : '';
+        const lastContent = (lastMessage?.content || '').toLowerCase();
 
-        // Handle greetings directly without AI call
-        const greetings = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'howdy'];
-        const isGreeting = greetings.some(g => lastContent.trim().startsWith(g)) && lastContent.length < 30;
+        // ✅ GREETING HANDLER
+        const greetings = ['hello', 'hi', 'hey'];
+        const isGreeting = greetings.some(g => lastContent.startsWith(g));
 
         if (isGreeting) {
             return res.json({
                 choices: [{
                     message: {
-                        content: "👋 Hello! I'm your NavigatEHR AI Assistant!\n\nI can help you analyze your healthcare data. Try asking me:\n\n📊 \"Show me a bar chart of top providers\"\n💰 \"What is the total billed amount?\"\n🥧 \"Create a pie chart by payer\"\n📈 \"Show trend chart of open balance\"\n📋 \"Give me a summary of the data\"\n\nWhat would you like to know? 😊"
+                        content: "👋 Hello! Ask me about your data or request a chart 📊"
                     }
                 }]
             });
         }
 
-        // Detect chart request - only explicit chart words
-        const isChartRequest =
-    lastContent.includes('chart') ||
-    lastContent.includes('graph') ||
-    lastContent.includes('bar chart') ||
-    lastContent.includes('pie chart') ||
-    lastContent.includes('line chart') ||
-    lastContent.includes('trend chart') ||
-    lastContent.includes('create chart') ||
-    lastContent.includes('show chart') ||
-    lastContent.includes('generate chart');
-
-       const activeSystemPrompt = systemPrompt;
+        // ✅ ONLY FOR TOKEN LIMIT (NOT PROMPT SWITCHING)
+        const isChartRequest = /\b(chart|graph)\b/.test(lastContent);
 
         const requestBody = {
             messages: [
-                { role: "system", content: activeSystemPrompt },
+                { role: "system", content: systemPrompt },
                 ...userMessages
             ],
-            max_completion_tokens: isChartRequest ? 2000 : (req.body.max_completion_tokens || 800)
+            max_completion_tokens: isChartRequest ? 2000 : 800
         };
 
-        console.log(`Request type: ${isChartRequest ? 'CHART' : 'TEXT'} | Query: ${lastContent.substring(0, 50)}`);
+        console.log(`Mode: ${isChartRequest ? 'CHART' : 'TEXT'} | Query: ${lastContent}`);
 
         const response = await fetch(process.env.AZURE_ENDPOINT, {
             method: 'POST',
@@ -198,7 +139,6 @@ app.post('/chat', async (req, res) => {
         });
 
         const data = await response.json();
-        console.log('Azure response status:', response.status);
         res.json(data);
 
     } catch (err) {
@@ -209,5 +149,5 @@ app.post('/chat', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`NavigatEHR Azure OpenAI proxy running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
