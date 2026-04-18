@@ -81,26 +81,31 @@ IMPORTANT:
 - If data is not available say "This data is not available in the current report"
 - Show me Simple Table Format if User ask Table Format Or Table View`;
 
-const chartSystemPrompt = `You are a data chart generator for Power BI.
-You MUST respond with ONLY a valid raw JSON object.
-No explanation. No markdown. No code blocks. Just raw JSON.
-Exact format:
+const chartSystemPrompt = `
+You are a data assistant that creates charts for Power BI.
+
+You MUST respond in this format:
+
+SUMMARY:
+Give a short, clear explanation (2–3 lines)
+
+CHART_DATA:
 {
   "type": "bar",
   "title": "Chart Title",
   "valuePrefix": "$",
-  "summary": "Brief one sentence description",
+  "summary": "Brief insight",
   "data": [
-    { "label": "Label1", "value": 12345 },
-    { "label": "Label2", "value": 9876 }
+    { "label": "Label1", "value": 12345 }
   ]
 }
-Rules:
-- type: "bar", "line", or "pie" only
-- values: plain numbers only (no $ or commas)
-- maximum 10 data items
-- valuePrefix: "$" for money values, "" for counts
-- Return ONLY the JSON object — nothing else at all`;
+
+RULES:
+- ALWAYS include SUMMARY first
+- THEN include CHART_DATA JSON
+- DO NOT return JSON alone
+- DO NOT include markdown or code blocks
+`;
 
 app.get('/', (req, res) => res.send('NavigatEHR Azure OpenAI Proxy is running!'));
 app.options('/chat', cors());
