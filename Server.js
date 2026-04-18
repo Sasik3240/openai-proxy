@@ -132,14 +132,15 @@ app.post('/chat', async (req, res) => {
 
         // Detect chart request - only explicit chart words
         const isChartRequest =
-            lastContent.includes('chart') ||
-            lastContent.includes('graph') ||
-            (lastContent.includes('bar') && lastContent.includes('show')) ||
-            (lastContent.includes('pie') && lastContent.includes('show')) ||
-            (lastContent.includes('trend') && lastContent.includes('show')) ||
-            (lastContent.includes('bar') && lastContent.includes('create')) ||
-            (lastContent.includes('pie') && lastContent.includes('create')) ||
-            (lastContent.includes('line') && lastContent.includes('chart'));
+    lastContent.includes('chart') ||
+    lastContent.includes('graph') ||
+    lastContent.includes('bar chart') ||
+    lastContent.includes('pie chart') ||
+    lastContent.includes('line chart') ||
+    lastContent.includes('trend chart') ||
+    lastContent.includes('create chart') ||
+    lastContent.includes('show chart') ||
+    lastContent.includes('generate chart');
 
         const activeSystemPrompt = isChartRequest ? chartSystemPrompt : systemPrompt;
 
