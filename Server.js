@@ -176,7 +176,7 @@ app.post('/chat', async (req, res) => {
                 { role: "system", content: systemPrompt },
                 ...userMessages
             ],
-            max_completion_tokens: isChartRequest ? 2000 : 800
+           max_completion_tokens: 3000
         };
 
         console.log(`Mode: ${isChartRequest ? 'CHART' : 'TEXT'} | Query: ${lastContent}`);
