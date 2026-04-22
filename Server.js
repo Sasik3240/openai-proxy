@@ -100,7 +100,7 @@ Use clean pipe-separated rows with headers
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 CHART FORMAT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Write 1-2 lines, then:
+Write 1-2 lines about what the chart shows, then:
 
 CHART_DATA:
 {
@@ -119,7 +119,7 @@ CHOOSE THE RIGHT CHART TYPE:
 - pie        → payor mix breakdown, CPT category share
 - comparison → Billed vs Open Balance, Billed vs Paid by provider
 
-For comparison:
+For comparison chart:
 CHART_DATA:
 {
   "type": "comparison",
@@ -181,16 +181,14 @@ app.post('/chat', async (req, res) => {
             return res.json({
                 choices: [{
                     message: {
-                        content: "👋 Hello! Ask me about your data or request a chart 📊"
+                        content: "👋 Hello! I'm NavigatEHR AI — your intelligent RCM analytics assistant. Ask me anything about your claims, providers, payors, or billing trends 📊"
                     }
                 }]
             });
         }
 
-        const isChartRequest = /\b(chart|graph)\b/.test(lastContent);
+        const isChartRequest = /\b(chart|graph|trend|top\s*\d|ranking|visual)\b/.test(lastContent);
 
-        // o3-mini uses reasoning tokens internally — set limit high enough for real responses
-        // Chart: 3000, Text/Data: 3000 (was 800 — caused empty responses on large data queries)
         const requestBody = {
             messages: [
                 { role: "system", content: systemPrompt },
