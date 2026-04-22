@@ -187,6 +187,27 @@ app.post('/chat', async (req, res) => {
             });
         }
 
+        // ACKNOWLEDGMENT HANDLER — short closing/thank-you messages
+        const ackPhrases = [
+            'ok thanks', 'okay thanks', 'ok thank you', 'okay thank you',
+            'thank you', 'thanks', 'thx', 'ty',
+            'great', 'perfect', 'awesome', 'nice', 'good',
+            'got it', 'noted', 'understood', 'alright', 'ok', 'okay',
+            'bye', 'goodbye', 'see you', 'see ya'
+        ];
+        const cleanContent = lastContent.replace(/[!.,?]/g, '').trim();
+        const isAck = ackPhrases.some(p => cleanContent === p || cleanContent.startsWith(p + ' '));
+
+        if (isAck) {
+            return res.json({
+                choices: [{
+                    message: {
+                        content: "😊 Happy to help! Let me know whenever you have more questions about your claims data.\n\nWould you like me to show a summary of your current data? (Yes / No)"
+                    }
+                }]
+            });
+        }
+
         const isChartRequest = /\b(chart|graph|trend|top\s*\d|ranking|visual)\b/.test(lastContent);
 
         const requestBody = {
