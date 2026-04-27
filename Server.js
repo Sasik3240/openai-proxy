@@ -178,6 +178,7 @@ Would you like me to show what data is currently loaded? (Yes / No)"
 
 app.get('/', (req, res) => res.send('NavigatEHR Azure OpenAI Proxy is running!'));
 app.options('/chat', cors());
+app.options('/chat/stream', cors());
 
 app.post('/chat', async (req, res) => {
     try {
@@ -247,6 +248,64 @@ app.post('/chat', async (req, res) => {
     } catch (err) {
         console.error('Proxy error:', err.message);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Streaming endpoint (Server-Sent Events) ────────────────────────────────
+app.post('/chat/stream', async (req, res) => {
+    try {
+        const userMessages = req.body.messages || [];
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        const requestBody = {
+            messages: [
+                { role: "system", content: systemPrompt },
+                ...userMessages
+            ],
+            max_completion_tokens: 3000,
+            stream: true
+        };
+
+        console.log(`STREAM | Query: ${(userMessages[userMessages.length - 1]?.content || '').substring(0, 80)}`);
+
+        const response = await fetch(process.env.AZURE_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': process.env.AZURE_OPENAI_API_KEY
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            res.write(`data: [ERROR] Azure ${response.status}: ${errText}\n\n`);
+            res.end();
+            return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            res.write(chunk);
+            if (res.flush) res.flush();
+        }
+
+        res.end();
+    } catch (err) {
+        console.error('Stream error:', err.message);
+        try {
+            res.write(`data: [ERROR] ${err.message}\n\n`);
+            res.end();
+        } catch (_) {}
     }
 });
 
