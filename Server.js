@@ -288,18 +288,12 @@ app.post('/chat/stream', async (req, res) => {
             return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            res.write(chunk);
-            if (res.flush) res.flush();
-        }
-
-        res.end();
+        // node-fetch v2 gives a Node.js Readable stream, not a Web Streams ReadableStream
+        // Use .pipe() instead of .getReader()
+        response.body.on('error', (err) => {
+            try { res.write(`data: [ERROR] ${err.message}\n\n`); res.end(); } catch (_) {}
+        });
+        response.body.pipe(res);
     } catch (err) {
         console.error('Stream error:', err.message);
         try {
